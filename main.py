@@ -1,28 +1,35 @@
-import pygame
-import os
-import time
-import random
-pygame.font.init()
+# Import các thư viện cần thiết
+import pygame, os, time, random
+pygame.font.init() # Load font chữ
 
-WIDTH, HEIGHT = 750, 750
-WIN = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Space Invaders")
+# !!! Lưu ý các biến constant là các biến được khai báo với tên in hoa và không thể được thay đổi trong quá trình chạy code.
+# Setup cửa sổ game
+WIDTH, HEIGHT = 750, 750 # Constant cho chiều rộng và cao của window
+WIN = pygame.display.set_mode((WIDTH, HEIGHT)) # Khởi tạo constant cửa sổ với chiều rộng là WIDTH, chiều cao là HEIGHT
+ICON = pygame.image.load(os.path.join("assets", "pixel_ship_red_small.png")) # Constant ICON
+pygame.display.set_icon(ICON) # Đặt ảnh Icon cho cửa sổ (hình nhỏ ở góc trên cùng bên trái)
+pygame.display.set_caption("Space Invaders") # Đặt tên cho cửa sổ game
 
+# Khởi tạo constant cho tàu địch
 RED_SPACE_SHIP = pygame.image.load(os.path.join("assets", "pixel_ship_red_small.png"))
 GREEN_SPACE_SHIP = pygame.image.load(os.path.join("assets", "pixel_ship_green_small.png"))
 BLUE_SPACE_SHIP = pygame.image.load(os.path.join("assets", "pixel_ship_blue_small.png"))
 
+# Khởi tạo constant cho tàu của người chơi
 YELLOW_SPACE_SHIP = pygame.image.load(os.path.join("assets", "pixel_ship_yellow.png"))
 
+# Khởi tạo constant laser
 RED_LASER = pygame.image.load(os.path.join("assets", "pixel_laser_red.png"))
 GREEN_LASER = pygame.image.load(os.path.join("assets", "pixel_laser_green.png"))
 BLUE_LASER = pygame.image.load(os.path.join("assets", "pixel_laser_blue.png"))
 YELLOW_LASER = pygame.image.load(os.path.join("assets", "pixel_laser_yellow.png"))
 
+# Background game
 BG = pygame.transform.scale(pygame.image.load(os.path.join("assets", "background-black.png")), (WIDTH, HEIGHT))
 
+# Class cho laser có 4 phương thức draw(), move(), off_screen(), collision()
 class Laser:
-    def __init__(self, x, y, img):
+    def __init__(self, x, y, img): # Hàm __init__  
         self.x = x
         self.y = y
         self.img = img
@@ -40,7 +47,7 @@ class Laser:
     def collision(self, obj):
         return collide(self, obj)
 
-
+# Class cho tàu
 class Ship:
     COOLDOWN = 30
 
@@ -85,8 +92,6 @@ class Ship:
 
     def get_height(self):
         return self.ship_img.get_height()
-
-
 class Player(Ship):
     def __init__(self, x, y, health=100):
         super().__init__(x, y, health)
@@ -113,10 +118,8 @@ class Player(Ship):
         self.healthbar(window)
 
     def healthbar(self, window):
-        pygame.draw.rect(window, (255,0,0), (self.x, self.y + self.ship_img.get_height() + 10, 
-                                            self.ship_img.get_width(), 10))
-        pygame.draw.rect(window, (0,255,0), (self.x, self.y + self.ship_img.get_height() + 10, 
-                                            self.ship_img.get_width() * (self.health/self.max_health), 10))
+        pygame.draw.rect(window, (255,0,0), (self.x, self.y + self.ship_img.get_height() + 10, self.ship_img.get_width(), 10))
+        pygame.draw.rect(window, (0,255,0), (self.x, self.y + self.ship_img.get_height() + 10, self.ship_img.get_width() * (self.health/self.max_health), 10))
 
 
 class Enemy(Ship):
@@ -151,18 +154,19 @@ def main():
     FPS = 60
     level = 0
     lives = 5
-    main_font = pygame.font.SysFont("comicsans", 40)
-    lost_font = pygame.font.SysFont("comicsans", 50)
+    score = 0
+    point = 100
+    main_font = pygame.font.Font("RobotoMono-Regular.ttf",40)
+    lost_font = pygame.font.Font("RobotoMono-Regular.ttf",50)
 
     enemies = []
     wave_length = 5
     enemy_vel = 1
-
     player_vel = 7
     laser_vel = 10
 
     player = Player(300, 630)
-
+    laser = Laser
     clock = pygame.time.Clock()
 
     lost = False
@@ -170,11 +174,16 @@ def main():
 
     def redraw_window():
         WIN.blit(BG, (0,0))
-        lives_label = main_font.render(f"Lives: {lives}", 1, (255,255,255))
-        level_label = main_font.render(f"Level: {level}", 1, (255,255,255))
+        # draw text
+        lives_label = main_font.render(f"{lives} Mạng", 1, (255,255,255))
+        level_label = main_font.render(f"Level {level}", 1, (255,255,255))
+        score_label = main_font.render(f"Điểm: {score}", 1, (255,255,255))
+        enemies_label = main_font.render(f"Còn {len(enemies)} địch", 1, (255,255,255))
 
         WIN.blit(lives_label, (10, 10))
         WIN.blit(level_label, (WIDTH - level_label.get_width() - 10, 10))
+        WIN.blit(score_label, (10, 60))
+        WIN.blit(enemies_label, (WIDTH - enemies_label.get_width() - 10, 60))
 
         for enemy in enemies:
             enemy.draw(WIN)
@@ -203,8 +212,12 @@ def main():
 
         if len(enemies) == 0:
             level += 1
-            wave_length += 5
-            for i in range(wave_length):
+            if level > 1:
+                wave_length *= 1.5
+                enemy_vel += 0.25
+                point *= 1.5
+            print(wave_length, enemy_vel, point)
+            for i in range(int(wave_length)):
                 enemy = Enemy(random.randrange(50, WIDTH-100), random.randrange(-1500, -100), random.choice(["red", "blue", "green"]))
                 enemies.append(enemy)
 
@@ -213,13 +226,21 @@ def main():
                 quit()
 
         keys = pygame.key.get_pressed()
-        if keys[pygame.K_LEFT] and player.x - player_vel > 0:
+        if keys[pygame.K_LEFT] and player.x - player_vel > 0: # left
             player.x -= player_vel
-        if keys[pygame.K_RIGHT] and player.x + player_vel + player.get_width() < WIDTH:
+        if keys[pygame.K_RIGHT] and player.x + player_vel + player.get_width() < WIDTH: # right
             player.x += player_vel
-        if keys[pygame.K_UP] and player.y - player_vel > 0:
+        if keys[pygame.K_UP] and player.y - player_vel > 0: # up
             player.y -= player_vel
-        if keys[pygame.K_DOWN] and player.y + player_vel + player.get_height() + 15 < HEIGHT:
+        if keys[pygame.K_DOWN] and player.y + player_vel + player.get_height() + 15 < HEIGHT: # down
+            player.y += player_vel
+        if keys[pygame.K_a] and player.x - player_vel > 0: # left
+            player.x -= player_vel
+        if keys[pygame.K_d] and player.x + player_vel + player.get_width() < WIDTH: # right
+            player.x += player_vel
+        if keys[pygame.K_w] and player.y - player_vel > 0: # up
+            player.y -= player_vel
+        if keys[pygame.K_s] and player.y + player_vel + player.get_height() + 15 < HEIGHT: # down
             player.y += player_vel
         if keys[pygame.K_SPACE]:
             player.shoot()
@@ -241,12 +262,12 @@ def main():
         player.move_lasers(-laser_vel, enemies)
 
 def main_menu():
-    title_font = pygame.font.SysFont("comicsans", 70)
+    title_font = pygame.font.Font("RobotoMono-Regular.ttf",70)
     run = True
     while run:
         WIN.blit(BG, (0,0))
-        title_label = title_font.render("Press to begin...", 1, (255,255,255))
-        WIN.blit(title_label, (WIDTH/2 - title_label.get_width()/2, 350))
+        title = title_font.render("Bấm để chơi...", 1, (255,255,255))
+        WIN.blit(title, (WIDTH/2 - title.get_width()/2, 350))
         pygame.display.update()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
