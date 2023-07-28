@@ -25,9 +25,9 @@ BLUE_LASER = pygame.image.load(os.path.join("assets", "pixel_laser_blue.png"))
 YELLOW_LASER = pygame.image.load(os.path.join("assets", "pixel_laser_yellow.png"))
 
 # Background game
-BG = pygame.transform.scale(pygame.image.load(os.path.join("assets", "background-black.png")), (WIDTH, HEIGHT))
-
+BG = pygame.transform.scale(pygame.image.load(os.path.join("assets", "background-black.png")), (WIDTH, HEIGHT)) 
 # Class cho laser có 4 phương thức draw(), move(), off_screen(), collision()
+
 class Laser:
     def __init__(self, x, y, img): # Hàm __init__  
         self.x = x
@@ -93,12 +93,14 @@ class Ship:
     def get_height(self):
         return self.ship_img.get_height()
 class Player(Ship):
-    def __init__(self, x, y, health=100):
+    def __init__(self, x, y, point,  health=100):
         super().__init__(x, y, health)
         self.ship_img = YELLOW_SPACE_SHIP
         self.laser_img = YELLOW_LASER
         self.mask = pygame.mask.from_surface(self.ship_img)
         self.max_health = health
+        self.score = 0
+        self.point = point
 
     def move_lasers(self, vel, objs):
         self.cooldown()
@@ -109,6 +111,7 @@ class Player(Ship):
             else:
                 for obj in objs:
                     if laser.collision(obj):
+                        self.score += self.point
                         objs.remove(obj)
                         if laser in self.lasers:
                             self.lasers.remove(laser)
@@ -154,19 +157,16 @@ def main():
     FPS = 60
     level = 0
     lives = 5
-    score = 0
     point = 100
     main_font = pygame.font.Font("RobotoMono-Regular.ttf",40)
     lost_font = pygame.font.Font("RobotoMono-Regular.ttf",50)
-
     enemies = []
     wave_length = 5
     enemy_vel = 1
     player_vel = 7
     laser_vel = 10
 
-    player = Player(300, 630)
-    laser = Laser
+    player = Player(300, 630, point)
     clock = pygame.time.Clock()
 
     lost = False
@@ -177,7 +177,7 @@ def main():
         # draw text
         lives_label = main_font.render(f"{lives} Mạng", 1, (255,255,255))
         level_label = main_font.render(f"Level {level}", 1, (255,255,255))
-        score_label = main_font.render(f"Điểm: {score}", 1, (255,255,255))
+        score_label = main_font.render(f"Điểm: {int(player.score)}", 1, (255,255,255))
         enemies_label = main_font.render(f"Còn {len(enemies)} địch", 1, (255,255,255))
 
         WIN.blit(lives_label, (10, 10))
@@ -191,8 +191,10 @@ def main():
         player.draw(WIN)
 
         if lost:
-            lost_label = lost_font.render("You Lost", 1, (255,255,255))
-            WIN.blit(lost_label, (WIDTH/2 - lost_label.get_width()/2, 350))
+            lost_label = lost_font.render("Bạn đã thua", 1, (255,255,255))
+            WIN.blit(lost_label, (WIDTH/2 - lost_label.get_width()/2, 275))
+            final_score_label = lost_font.render(f"Điểm đạt được: {player.score}", 1, (0,255,255))
+            WIN.blit(final_score_label, (WIDTH/2 - final_score_label.get_width()/2, 325))
 
         pygame.display.update()
 
@@ -213,10 +215,10 @@ def main():
         if len(enemies) == 0:
             level += 1
             if level > 1:
-                wave_length *= 1.5
-                enemy_vel += 0.25
-                point *= 1.5
-            print(wave_length, enemy_vel, point)
+                wave_length *= 1.25
+                enemy_vel += 0.1
+                player.point *= 1.5
+            print("wv len: ",wave_length,"enemy vel: ", enemy_vel, "point: ",player.point) #in các biến mỗi lần được thay đổi để giúp debug
             for i in range(int(wave_length)):
                 enemy = Enemy(random.randrange(50, WIDTH-100), random.randrange(-1500, -100), random.choice(["red", "blue", "green"]))
                 enemies.append(enemy)
@@ -251,7 +253,9 @@ def main():
 
             if random.randrange(0, 2*60) == 1:
                 enemy.shoot()
-
+            # if collide(enemy,player.laser):
+            #     score+=point
+            #     enemies.remove(enemy)
             if collide(enemy, player):
                 player.health -= 10
                 enemies.remove(enemy)
